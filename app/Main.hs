@@ -1,14 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-import           Control.Monad.IO.Class (liftIO)
 import qualified Lib
 import qualified Network.HTTP.Types
 import           Web.Scotty
+import qualified Domino
 
 main :: IO ()
-main = scotty 3000 $
+main = scotty 8000 $
   post "/" $ do
     beam <-  body
-    let a = Lib.parse' beam
-    liftIO $ print a
+    json $ Domino.playGame $ Lib.parse' beam
     status Network.HTTP.Types.status200

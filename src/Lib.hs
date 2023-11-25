@@ -11,6 +11,7 @@
 
 module Lib where
 
+import           Data.Aeson
 import           Data.Aeson.BetterErrors
   ( Parse,
     ParseError,
@@ -26,70 +27,74 @@ import qualified Debug.Trace
 
 data Lado = Esquerda | Direita deriving (Show)
 
-data Tpedra = Branco | As | Duque | Terno | Quadra | Quina | Sena deriving (Show)
+instance ToJSON Lado where
+  toJSON Esquerda = "esquerda"
+  toJSON Direita = "direita"
+
+data Tpedra = Branco | As | Duque | Terno | Quadra | Quina | Sena deriving (Eq, Show)
 
 data Pedra = Pedra {
   valor :: (Tpedra, Tpedra),
   raw :: String
-}
+} deriving (Show)
 
-instance Show Pedra where
-  show (Pedra _ raw) =
-    case raw of
-      "0-0" -> "🁣"
-      "0-1" -> "🀲"
-      "0-2" -> "🀳"
-      "0-3" -> "🀴"
-      "0-4" -> "🀵"
-      "0-5" -> "🀶"
-      "0-6" -> "🀷"
-      "1-1" -> "🁫"
-      "1-2" -> "🀺"
-      "1-3" -> "🀻"
-      "1-4" -> "🀼"
-      "1-5" -> "🀽"
-      "1-6" -> "🀾"
-      "2-1" -> "🁀"
-      "2-2" -> "🁳"
-      "2-3" -> "🁂"
-      "2-4" -> "🁃"
-      "2-5" -> "🁄"
-      "2-6" -> "🁅"
-      "3-0" -> "🁆"
-      "3-1" -> "🁇"
-      "3-2" -> "🁈"
-      "3-3" -> "🁻"
-      "3-4" -> "🁊"
-      "3-5" -> "🁋"
-      "3-6" -> "🁌"
-      "4-0" -> "🁍"
-      "4-1" -> "🁎"
-      "4-2" -> "🁏"
-      "4-3" -> "🁐"
-      "4-4" -> "🂃"
-      "4-5" -> "🁒"
-      "4-6" -> "🁓"
-      "5-0" -> "🁔"
-      "5-1" -> "🁕"
-      "5-2" -> "🁖"
-      "5-3" -> "🁗"
-      "5-4" -> "🁘"
-      "5-5" -> "🂋"
-      "5-6" -> "🁚"
-      "6-0" -> "🁛"
-      "6-1" -> "🁜"
-      "6-2" -> "🁝"
-      "6-3" -> "🁞"
-      "6-4" -> "🁟"
-      "6-5" -> "🁠"
-      "6-6" -> "🂓"
-      _ -> ""
+-- instance Show Pedra where
+--   show (Pedra _ raw) =
+--     case raw of
+--       "0-0" -> "🁣"
+--       "0-1" -> "🀲"
+--       "0-2" -> "🀳"
+--       "0-3" -> "🀴"
+--       "0-4" -> "🀵"
+--       "0-5" -> "🀶"
+--       "0-6" -> "🀷"
+--       "1-1" -> "🁫"
+--       "1-2" -> "🀺"
+--       "1-3" -> "🀻"
+--       "1-4" -> "🀼"
+--       "1-5" -> "🀽"
+--       "1-6" -> "🀾"
+--       "2-1" -> "🁀"
+--       "2-2" -> "🁳"
+--       "2-3" -> "🁂"
+--       "2-4" -> "🁃"
+--       "2-5" -> "🁄"
+--       "2-6" -> "🁅"
+--       "3-0" -> "🁆"
+--       "3-1" -> "🁇"
+--       "3-2" -> "🁈"
+--       "3-3" -> "🁻"
+--       "3-4" -> "🁊"
+--       "3-5" -> "🁋"
+--       "3-6" -> "🁌"
+--       "4-0" -> "🁍"
+--       "4-1" -> "🁎"
+--       "4-2" -> "🁏"
+--       "4-3" -> "🁐"
+--       "4-4" -> "🂃"
+--       "4-5" -> "🁒"
+--       "4-6" -> "🁓"
+--       "5-0" -> "🁔"
+--       "5-1" -> "🁕"
+--       "5-2" -> "🁖"
+--       "5-3" -> "🁗"
+--       "5-4" -> "🁘"
+--       "5-5" -> "🂋"
+--       "5-6" -> "🁚"
+--       "6-0" -> "🁛"
+--       "6-1" -> "🁜"
+--       "6-2" -> "🁝"
+--       "6-3" -> "🁞"
+--       "6-4" -> "🁟"
+--       "6-5" -> "🁠"
+--       "6-6" -> "🂓"
+--       _ -> ""
 
 
-instance {-# OVERLAPPING #-} Show [Pedra] where
-  show [] = ""
-  show [x] = show x
-  show (x : xs) = show x <> " " <> show xs
+-- instance {-# OVERLAPPING #-} Show [Pedra] where
+--   show [] = ""
+--   show [x] = show x
+--   show (x : xs) = show x <> " " <> show xs
 
 data Jogada = Jogada {
   jogador :: Int,
@@ -129,10 +134,8 @@ asPedra = do
   let raw = valor
   case valor of
     [p1, '-', p2] ->
-      Debug.Trace.trace (show (p1, p2))
       pure $ Pedra (asValue p1, asValue p2) raw
     _ ->
-      Debug.Trace.trace (show valor)
       throwCustomError "Pedra inválida"
 
 asJogada :: Parse String Jogada
