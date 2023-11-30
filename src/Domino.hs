@@ -47,26 +47,36 @@ instance ToJSON Response where
 canPlay :: Tpedra -> Pedra -> Bool
 canPlay x (Pedra (a, b) _) = a == x || b == x
 
+debug :: c -> String -> c
+debug = flip trace
+
 playGame' :: Lib.Body -> Response
 playGame' body =
   case (playableEsq, playableDir) of
     (Just (pedra : _), Nothing) -> Res (raw pedra) Lib.Esquerda
     (Nothing, Just (pedra : _)) -> Res (raw pedra) Lib.Direita
     (Just (pedra : _), Just (pedra' : __))
-      | pedra > pedra' -> Res (raw pedra) Lib.Esquerda
+      | pedra >= pedra' -> Res (raw pedra) Lib.Esquerda
       | pedra < pedra' -> Res (raw pedra') Lib.Direita
     _ ->
-      Pass
+      Pass `debug` (show playableEsq ++ " " ++ show playableDir)
   where
     safe_mesa = NE.nonEmpty . mesa $ body
     safe_mao = NE.nonEmpty . mao $ body
+
     ponta_esquerda = NE.head <$> safe_mesa
     ponta_direita = NE.last <$> safe_mesa
+
     tpedra_esq = fst <$> (valor <$> ponta_esquerda)
     tpedra_dir = snd <$> (valor <$> ponta_direita)
+
     get tpedra_dir safe_mao = do
       a <- tpedra_dir
-      NE.filter (canPlay a) <$> safe_mao
+      case NE.filter (canPlay a) <$> safe_mao of
+        Just [] -> Nothing
+        Just x -> Just x
+        Nothing -> Nothing
+
     playableEsq = get tpedra_esq safe_mao
     playableDir = get tpedra_dir safe_mao
 
