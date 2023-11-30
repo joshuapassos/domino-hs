@@ -7,11 +7,11 @@ RUN apt-get install -y g++ gcc libc6-dev libffi-dev libgmp-dev make xz-utils zli
 RUN curl -sSL https://get.haskellstack.org/ | sh
 
 WORKDIR /app
-COPY *.yaml /app
+COPY *.yaml /app/
 
 RUN stack build --only-dependencies
 
-COPY . /app
+COPY . /app/
 
 RUN stack build
 

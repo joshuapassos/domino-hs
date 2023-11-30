@@ -1,29 +1,30 @@
-{-# LANGUAGE DataKinds             #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE FlexibleInstances     #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# HLINT ignore "Unused LANGUAGE pragma" #-}
 {-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
-{-# LANGUAGE GADTs                 #-}
-{-# LANGUAGE NamedFieldPuns        #-}
-{-# LANGUAGE OverloadedStrings     #-}
-{-# LANGUAGE RankNTypes            #-}
 
 module Lib where
 
-import           Data.Aeson
-import           Data.Aeson.BetterErrors
+import Data.Aeson
+import Data.Aeson.BetterErrors
   ( Parse,
     ParseError,
-    parse,
     asIntegral,
     asString,
+    eachInArray,
     key,
     keyMay,
-    eachInArray, throwCustomError,
+    parse,
+    throwCustomError,
   )
 import qualified Data.ByteString.Lazy.Char8 as BL
-import qualified Debug.Trace
 
 data Lado = Esquerda | Direita deriving (Show)
 
@@ -33,10 +34,33 @@ instance ToJSON Lado where
 
 data Tpedra = Branco | As | Duque | Terno | Quadra | Quina | Sena deriving (Eq, Show)
 
-data Pedra = Pedra {
-  valor :: (Tpedra, Tpedra),
-  raw :: String
-} deriving (Show)
+class Size a where
+  size :: a -> Int
+
+instance Size Tpedra where
+  size Branco = 0
+  size As = 1
+  size Duque = 2
+  size Terno = 3
+  size Quadra = 4
+  size Quina = 5
+  size Sena = 6
+
+data Pedra = Pedra
+  { valor :: (Tpedra, Tpedra),
+    raw :: String
+  }
+  deriving (Show, Eq)
+
+instance Size Pedra where
+  size (Pedra (a, b) _) = size a + size b
+
+instance Ord Pedra where
+  a < b = size a < size b
+  a <= b = size a <= size b
+  a > b = size a > size b
+  a >= b = size a >= size b
+  Pedra _ raw1 `compare` Pedra _ raw2 = raw1 `compare` raw2
 
 -- instance Show Pedra where
 --   show (Pedra _ raw) =
@@ -90,24 +114,25 @@ data Pedra = Pedra {
 --       "6-6" -> "🂓"
 --       _ -> ""
 
-
 -- instance {-# OVERLAPPING #-} Show [Pedra] where
 --   show [] = ""
 --   show [x] = show x
 --   show (x : xs) = show x <> " " <> show xs
 
-data Jogada = Jogada {
-  jogador :: Int,
-  pedra :: Pedra,
-  lado :: Maybe Lado
-} deriving (Show)
+data Jogada = Jogada
+  { jogador :: Int,
+    pedra :: Pedra,
+    lado :: Maybe Lado
+  }
+  deriving (Show)
 
-data Body = Body {
-  jogador :: Int,
-  mao :: [Pedra],
-  mesa :: [Pedra],
-  jogadas :: [Jogada]
-} deriving (Show)
+data Body = Body
+  { jogador :: Int,
+    mao :: [Pedra],
+    mesa :: [Pedra],
+    jogadas :: [Jogada]
+  }
+  deriving (Show)
 
 asLado :: Parse String Lado
 asLado = do
@@ -116,7 +141,6 @@ asLado = do
     "esquerda" -> pure Esquerda
     "direita" -> pure Direita
     _ -> throwCustomError "Lado inválida"
-
 
 asValue :: Char -> Tpedra
 asValue '0' = Branco
@@ -152,7 +176,6 @@ asBody = do
   mesa <- key "mesa" (eachInArray asPedra)
   jogadas <- key "jogadas" (eachInArray asJogada)
   return $ Body jogador mao mesa jogadas
-
 
 parse' :: BL.ByteString -> Either (ParseError String) Body
 parse' = parse asBody
